@@ -40,6 +40,7 @@ Usage:
 2. Logs will be saved in `./logs/crash` directory of bedrock server executable's directory.
 3. Specify the version of BDS gets a better crash report.
 4. Online symbol cache directory is `%USERPROFILE%/.symcache`, you can delete it to clear the cache.
+5. Currently, usage like `CrashLogger pid version[optional]` is supported for compatibility with LiteLoaderBDS. It is not recommended to use it. Please use `CrashLogger -p pid -b version` instead. The old usage will be removed in the future.
 
 ## Preview
 
