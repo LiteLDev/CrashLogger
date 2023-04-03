@@ -39,3 +39,12 @@ Usage:
 1. Put `dbghelp.dll` and `symsrv.dll` in the same directory as CrashLogger.exe, or **online symbol server will not work**.
 2. Logs will be saved in `./logs/crash` directory of bedrock server executable's directory.
 3. Specify the version of BDS gets a better crash report.
+
+## Preview
+
+### Examples:
+
+[trace_2023-04-03_21-48-53.log](https://github.com/LiteLDev/CrashLogger/blob/main/examples/trace_2023-04-03_21-48-53.log)
+
+### Picture:
+![pic](https://github.com/LiteLDev/CrashLogger/blob/main/examples/console.png?raw=true)
