@@ -39,6 +39,7 @@ Usage:
 1. Put `dbghelp.dll` and `symsrv.dll` in the same directory as CrashLogger.exe, or **online symbol server will not work**.
 2. Logs will be saved in `./logs/crash` directory of bedrock server executable's directory.
 3. Specify the version of BDS gets a better crash report.
+4. Online symbol cache directory is `%USERPROFILE%/.symcache`, you can delete it to clear the cache.
 
 ## Preview
 
