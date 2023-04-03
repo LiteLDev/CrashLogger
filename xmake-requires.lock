@@ -1,0 +1,55 @@
+{
+    __meta__ = {
+        version = "1.0"
+    },
+    ["windows|x64"] = {
+        ["cmake#31fecfc4"] = {
+            repo = {
+                branch = "master",
+                commit = "1a596ccf1f1b855a235ff85a6d7548a21bd742cf",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "3.24.202208181-MSVC"
+        },
+        ["cxxopts#31fecfc4"] = {
+            repo = {
+                branch = "master",
+                commit = "1a596ccf1f1b855a235ff85a6d7548a21bd742cf",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v3.1.1"
+        },
+        ["fmt#31fecfc4"] = {
+            repo = {
+                branch = "master",
+                commit = "fde5c56447574e8a439233b846c6bf70177f99d4",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "9.1.0"
+        },
+        ["spdlog#31fecfc4"] = {
+            repo = {
+                branch = "master",
+                commit = "1edd1d87b8e0cc7d31aa1c9117faba4dd10573f9",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v1.11.0"
+        },
+        ["zycore-c v1.1.0#31fecfc4"] = {
+            repo = {
+                branch = "master",
+                commit = "1a596ccf1f1b855a235ff85a6d7548a21bd742cf",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v1.1.0"
+        },
+        ["zydis#31fecfc4"] = {
+            repo = {
+                branch = "master",
+                commit = "1a596ccf1f1b855a235ff85a6d7548a21bd742cf",
+                url = "https://github.com/xmake-io/xmake-repo.git"
+            },
+            version = "v3.2.1"
+        }
+    }
+}

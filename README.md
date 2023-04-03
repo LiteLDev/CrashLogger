@@ -1,0 +1,41 @@
+# CrashLogger
+
+_part of LiteLoaderBDS Toolchain_
+
+## Features
+
+### Genrate a minidump file
+
+### Genrate a crash report with the following information:
+
+- System Information
+- Exception Information
+- Registers Information
+- Current Instruction
+- Call Stack
+- Modules and addresses
+
+## Usages
+
+### Launch by LiteLoader
+
+_CrashLogger will be launched automatically as LiteLoader is loaded._
+
+### Use a Command Line
+
+```
+Usage:
+  CrashLogger [OPTION...]
+
+  -h, --help     Print this help message
+  -v, --version  Print version information
+  -s, --silent   Silent mode, no console output except for crash report and error messages
+  -b, --bds arg  The version of the BDS to be attached (default: 0.0.0.0)
+  -p, --pid arg  The PID of the process to be attached (default: -1)
+```
+
+## Notes
+
+1. Put `dbghelp.dll` and `symsrv.dll` in the same directory as CrashLogger.exe, or **online symbol server will not work**.
+2. Logs will be saved in `./logs/crash` directory of bedrock server executable's directory.
+3. Specify the version of BDS gets a better crash report.
