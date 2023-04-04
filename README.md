@@ -4,9 +4,9 @@ _part of LiteLoaderBDS Toolchain_
 
 ## Features
 
-### Genrate a minidump file
+### Generate a minidump file
 
-### Genrate a crash report with the following information:
+### Generate a crash report with the following information
 
 - System Information
 - Exception Information
@@ -23,7 +23,7 @@ _CrashLogger will be launched automatically as LiteLoader is loaded._
 
 ### Use a Command Line
 
-```
+```text
 Usage:
   CrashLogger [OPTION...]
 
@@ -44,9 +44,10 @@ Usage:
 
 ## Preview
 
-### Examples:
+### Examples
 
 [trace_2023-04-03_21-48-53.log](https://github.com/LiteLDev/CrashLogger/blob/main/examples/trace_2023-04-03_21-48-53.log)
 
-### Picture:
+### Picture
+
 ![pic](https://github.com/LiteLDev/CrashLogger/blob/main/examples/console.png?raw=true)
