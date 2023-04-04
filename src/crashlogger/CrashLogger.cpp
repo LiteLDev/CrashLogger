@@ -55,22 +55,6 @@ bool LegacyParseArgs(int argc, char** argv, std::string& bdsVersion, int& pid) {
         if (argc == 3) {
             bdsVersion = a2u8(argv[2]);
         }
-        // if parent process is bedrock_server_mod.exe, then we are in silent mode
-        auto ppid = GetParentProcessID();
-        if (ppid == 0) {
-            return true;
-        }
-
-        auto handle = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, ppid);
-        if (handle != nullptr) {
-            wchar_t path[MAX_PATH];
-            if (GetModuleFileNameExW(handle, nullptr, path, MAX_PATH) != 0) {
-                if (wcsstr(path, L"bedrock_server_mod.exe") != nullptr) {
-                    crashlogger::SilentMode = true;
-                }
-            }
-            CloseHandle(handle);
-        }
         return true;
     } catch (const std::invalid_argument&) {
         return false;
@@ -121,10 +105,8 @@ int main(int argc, char** argv) {
 
     std::string bdsVersion;
     int         pid;
-    if (LegacyParseArgs(argc, argv, bdsVersion, pid)) {
-        if (!crashlogger::SilentMode)
-            pLogger->warn("Legacy argument parsing is deprecated. Please use the new way to specify arguments.");
-    } else {
+    bool        legacy = LegacyParseArgs(argc, argv, bdsVersion, pid);
+    if (!legacy) {
         ModernParseArgs(argc, argv, bdsVersion, pid);
     }
 
@@ -134,13 +116,21 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    if (GetParentProcessID() == pid) {
+        crashlogger::SilentMode = true;
+        pLogger->set_level(spdlog::level::err);
+    }
+
+    if (legacy) {
+        pLogger->warn("Legacy argument parsing is deprecated. Please use the new way to specify arguments.");
+    }
+
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
     if (hProcess == nullptr) {
         pLogger->error("Failed to open the target process! Error Code: {}", GetLastError());
         return -1;
     }
-    if (!crashlogger::SilentMode)
-        pLogger->info("CrashLogger has successfully attached to the process. PID: {}", pid);
+    pLogger->info("CrashLogger has successfully attached to the process. PID: {}", pid);
     crashlogger::Debugger::DebuggerMain(hProcess);
     return 0;
 }

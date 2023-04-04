@@ -367,6 +367,10 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
     dwThreadId  = _dThreadId;
     date        = fmt::format("{:%Y-%m-%d_%H-%M-%S}", fmt::localtime(system_clock::now()));
 
+    printf("\n");
+    pLogger->set_level(spdlog::level::info);
+    pLogger->info("BDS Crashed! Generating Stacktrace and MiniDump...");
+
     auto targetPathBuf = std::wstring(MAX_PATH, L'\0');
     if (auto targetPathLen = GetModuleFileNameExW(hProcess, nullptr, targetPathBuf.data(), MAX_PATH)) {
         targetPathBuf.resize(targetPathLen);
@@ -383,17 +387,18 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
         return;
     }
 
-    printf("\n");
-    pLogger->info("BDS Crashed! Generating Stacktrace and MiniDump...");
     if (!SymbolHelper::CreateModuleMap(hProcess)) {
         pLogger->error("Failed to create module map!");
         return;
     }
+
     GenerateMiniDumpFile(e);
+
     if (!LoadSymbolFiles()) {
         pLogger->error("Failed to load symbol files!");
         return;
     }
+
     pLogger->info("");
 
     if (!InitFileLogger()) {
