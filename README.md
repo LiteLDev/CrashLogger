@@ -1,27 +1,16 @@
 # CrashLogger
 
-_part of LiteLoaderBDS Toolchain_
+Show crash log of LeviLamina
 
-## Features
+This utility helps generate crash reports and dump files when LeviLamina crashes. The crash report includes system information, exception information, registers information, current instruction, call stack, and modules and addresses.
 
-### Generate a minidump file
+## Install
 
-### Generate a crash report with the following information
+```sh
+lip install github.com/LiteLDev/CrashLogger
+```
 
-- System Information
-- Exception Information
-- Registers Information
-- Current Instruction
-- Call Stack
-- Modules and addresses
-
-## Usages
-
-### Launch by LiteLoader
-
-_CrashLogger will be launched automatically as LiteLoader is loaded._
-
-### Use a Command Line
+## Usage
 
 ```text
 Usage:
@@ -36,18 +25,18 @@ Usage:
 
 ## Notes
 
-1. Put `dbghelp.dll` and `symsrv.dll` in the same directory as CrashLogger.exe, or **online symbol server will not work**.
-2. Logs will be saved in `./logs/crash` directory of bedrock server executable's directory.
-3. Specify the version of BDS gets a better crash report.
-4. Online symbol cache directory is `%USERPROFILE%/.symcache`, you can delete it to clear the cache.
-5. Currently, usage like `CrashLogger pid version[optional]` is supported for compatibility with LiteLoaderBDS. It is not recommended to use it. Please use `CrashLogger -p pid -b version` instead. The old usage will be removed in the future.
+- Put `dbghelp.dll` and `symsrv.dll` in the same directory as CrashLogger.exe, or **online symbol server will not work**.
+- Logs will be saved in `./logs/crash` directory of bedrock server executable's directory.
+- Specify the version of BDS gets a better crash report.
+- Online symbol cache directory is `%USERPROFILE%/.symcache`, you can delete it to clear the cache.
+- Currently, usage like `CrashLogger pid version[optional]` is supported for compatibility with LiteLoaderBDS. It is not recommended to use it. Please use `CrashLogger -p pid -b version` instead. The old usage will be removed in the future.
 
-## Preview
+## Contributing
 
-### Examples
+Ask questions by creating an issue.
 
-[trace_2023-04-03_21-48-53.log](https://github.com/LiteLDev/CrashLogger/blob/main/examples/trace_2023-04-03_21-48-53.log)
+PRs accepted.
 
-### Picture
+## License
 
-![pic](https://github.com/LiteLDev/CrashLogger/blob/main/examples/console.png?raw=true)
+GPL-3.0-or-later © futrime

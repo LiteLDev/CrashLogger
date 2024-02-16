@@ -1,126 +1,48 @@
-name: Build
-
 on:
-  push:
-    paths:
-      - "**.cpp"
-      - "**.cc"
-      - "**.cxx"
-      - "**.c"
-      - "**.hpp"
-      - "**.hh"
-      - "**.hxx"
-      - "**.h"
-      - ".github/workflows/build.yml"
-      - "**/xmake.lua"
   pull_request:
-  release:
-    types:
-      - created
+  push:
   workflow_dispatch:
-
+  
 jobs:
   build:
-    name: Build
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup XMake
-        uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: latest
-
-      - name: Cache XMake
-        uses: actions/cache@v3
+      - uses: xmake-io/github-action-setup-xmake@v1
+      
+      - uses: actions/cache@v4
         with:
           path: |
             ~/AppData/Local/.xmake
-            ./.xmake
-          key: ${{ runner.os }}-xmake-${{ github.sha }}
+          key: xmake-${{ hashFiles('xmake.lua') }}
           restore-keys: |
-            ${{ runner.os }}-xmake-
+            xmake-
 
-      - name: Update XMake Repository
-        run: xmake repo -u
+      - run: |
+          xmake repo -u
 
-      - name: Get Release Version Tag
-        if: github.event_name == 'release'
-        run: echo "VERSION=${{ github.ref_name }}" >> $env:GITHUB_ENV
+      - run: |
+          xmake f -a x64 -m release -p windows -v -y
 
-      - name: Get Previous Tag
-        if: github.event_name != 'release'
-        id: previoustag
-        run: |
-          $tag = ((git ls-remote -t --refs --sort=-v:refname -q | select -first 1) -split "/")[2]
-          if ($tag -eq "" -or $tag -eq $null) {
-            $tag = "v0.0.0"
-          }
-          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+      - run: |
+          xmake -v -w -y
 
-      - name: Set Pseudo Version
-        if: github.event_name != 'release'
-        run: |
-          $date = (Get-Date -Format "yyyyMMddHHmmss")
-          $commit = git rev-parse --short HEAD
-          $previous_tag = "${{ steps.previoustag.outputs.tag }}"
-          echo "VERSION=$previous_tag-$date-$commit" >> $env:GITHUB_ENV
-
-      - name: Build CrashLogger
-        run: |
-          xmake f -p windows -m release -a x64 --ccache=n -y
-          xmake -w -y
-
-      - name: Prepare Artifacts
-        run: |
-          mkdir artifacts
-          cp build/windows/x64/release/CrashLogger.exe artifacts
-          cp build/windows/x64/release/CrashLogger.pdb artifacts
-          mv artifacts crashlogger-${{ env.VERSION }}-windows-amd64
-          mkdir artifacts
-          mv crashlogger-${{ env.VERSION }}-windows-amd64 artifacts/
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: crashlogger-${{ env.VERSION }}-windows-amd64
-          path: artifacts
+          name: CrashLogger-windows-x64-${{ github.sha }}
+          path: |
+            build/windows/x64/release/
 
-  upload-to-release:
-    name: Upload to Release
-    needs:
-      - build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+  clang-format:
+    runs-on: windows-latest
     steps:
-      - name: Get Version
-        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
 
-      - name: Download Artifacts
-        uses: actions/download-artifact@v3
+      - run: |
+          choco install llvm -y --version=17.0.6
 
-      - name: Compress Artifacts
-        id: compress
+      - name: clang-format
         run: |
-          mv crashlogger-${{ env.VERSION }}-windows-amd64 artifacts
-          mv artifacts/crashlogger-${{ env.VERSION }}-windows-amd64 .
-          zip -r crashlogger-${{ env.VERSION }}-windows-amd64.zip crashlogger-${{ env.VERSION }}-windows-amd64
-          echo "ZIP_SHA256=$(sha256sum crashlogger-${{ env.VERSION }}-windows-amd64.zip | cut -d ' ' -f 1)" >> $GITHUB_ENV
-          echo "EXE_SHA256=$(sha256sum crashlogger-${{ env.VERSION }}-windows-amd64/CrashLogger.exe | cut -d ' ' -f 1)" >> $GITHUB_ENV
-          echo "PDB_SHA256=$(sha256sum crashlogger-${{ env.VERSION }}-windows-amd64/CrashLogger.pdb | cut -d ' ' -f 1)" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          append_body: true
-          files: |
-            crashlogger-${{ env.VERSION }}-windows-amd64.zip
-            crashlogger-${{ env.VERSION }}-windows-amd64/CrashLogger.exe
-            crashlogger-${{ env.VERSION }}-windows-amd64/CrashLogger.pdb
-          body: |
-            | File                                             | SHA256                |
-            | :----------------------------------------------- | :-------------------- |
-            | crashlogger-${{ env.VERSION }}-windows-amd64.zip | ${{ env.ZIP_SHA256 }} |
-            | CrashLogger.exe                                  | ${{ env.EXE_SHA256 }} |
-            | CrashLogger.pdb                                  | ${{ env.PDB_SHA256 }} |
+          Get-ChildItem src/ -Filter *.cpp -Recurse | ForEach-Object { clang-format -i -Werror $_.FullName }
+          Get-ChildItem include/ -Filter *.h -Recurse | ForEach-Object { clang-format -i -Werror $_.FullName }

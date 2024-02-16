@@ -1,21 +1,34 @@
 add_rules("mode.debug", "mode.release")
 
+add_requires(
+    "cxxopts",
+    "fmt",
+    "spdlog",
+    "zydis"
+)
+
 set_policy("package.requires_lock", true)
 
-set_runtimes("MD")
-
-add_requires("cxxopts")
-add_requires("spdlog")
-add_requires("fmt")
-add_requires("zydis")
+if not has_config("vs_runtime") then
+    set_runtimes("MD")
+end
 
 target("CrashLogger")
-    set_kind("binary")
-    set_languages("c++20")
-    set_symbols("debug")
-    add_includedirs("include")
     add_cxflags("/utf-8")
-    add_defines("UNICODE", "DBGHELP_TRANSLATE_TCHAR", "WIN32_LEAN_AND_MEAN", "NOMINMAX")
-    add_syslinks("dbghelp", "version", "user32")
+    add_defines(
+        "DBGHELP_TRANSLATE_TCHAR",
+        "NOMINMAX", -- To avoid conflicts with std::min and std::max.
+        "UNICODE", -- To enable Unicode support in Windows API.
+        "WIN32_LEAN_AND_MEAN"
+    )
     add_files("src/**.cpp")
-    add_packages("cxxopts","spdlog","fmt", "zydis")
+    add_includedirs("include")
+    add_packages(
+        "cxxopts",
+        "fmt",
+        "spdlog",
+        "zydis"
+    )
+    add_syslinks("dbghelp", "version", "user32")
+    set_kind("binary")
+    set_languages("cxx20")
