@@ -29,6 +29,10 @@ target("CrashLogger")
         "spdlog",
         "zydis"
     )
-    add_syslinks("dbghelp", "version", "user32")
+    add_syslinks(
+        "dbghelp",
+        "user32",
+        "version"
+    )
     set_kind("binary")
     set_languages("cxx20")
