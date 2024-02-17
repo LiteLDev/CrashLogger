@@ -1,7 +1,7 @@
 {
     "format_version": 2,
     "tooth": "github.com/LiteLDev/CrashLogger",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "info": {
         "name": "CrashLogger",
         "description": "Show crash log of LeviLamina",
@@ -11,12 +11,12 @@
             "utility"
         ]
     },
-    "asset_url": "https://github.com/LiteLDev/CrashLogger/releases/download/v1.1.0/CrashLogger-windows-x64.zip",
+    "asset_url": "https://github.com/LiteLDev/CrashLogger/releases/download/v1.1.1/CrashLogger-windows-x64.zip",
     "files": {
         "place": [
             {
                 "src": "CrashLogger.exe",
-                "dest": "CrashLogger.exe"
+                "dest": "plugins/LeviLamina/CrashLogger.exe"
             }
         ]
     }
