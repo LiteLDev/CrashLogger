@@ -1,22 +1,24 @@
 #include <filesystem>
-#include <iterator>
 #include <map>
 #include <queue>
 #include <string>
 #include <system_error>
 #include <unordered_set>
 
+#include "Zydis/Decoder.h"
+#include "Zydis/Formatter.h"
 #include "fmt/chrono.h"
-#include "fmt/format.h"
 #include "spdlog/logger.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include "zydis/Zydis.h"
 
 #include "crashlogger/CrashLogger.h"
 #include "crashlogger/Logger.h"
+#include "crashlogger/ModHelper.h"
+#include "crashlogger/SentryUploader.h"
 #include "crashlogger/StringUtils.h"
 #include "crashlogger/SymbolHelper.h"
 #include "crashlogger/SysInfoHelper.h"
+
 
 #include <windows.h>
 
@@ -57,6 +59,9 @@ bool InitFileLogger() {
         pLogger->error("Failed to create file logger! Error: {}", ex.what());
         return false;
     }
+
+    traceName = logFileName;
+    tracePath = logFilePath.string();
     return true;
 }
 
@@ -94,6 +99,14 @@ bool GenerateMiniDumpFile(PEXCEPTION_POINTERS e) {
         pLogger->error("Failed to generate MiniDump! Error Code: 0x{:X}", GetLastError());
         return false;
     }
+
+    if (!FlushFileBuffers(hDumpFile)) {
+        pLogger->error("Failed to flush buffers to disk! Error Code: 0x{:X}", GetLastError());
+        return false;
+    }
+
+    CloseHandle(hDumpFile);
+
     error_code ec;
     dumpFilePath = canonical(dumpFilePath, ec);
     if (ec) {
@@ -101,6 +114,9 @@ bool GenerateMiniDumpFile(PEXCEPTION_POINTERS e) {
         return false;
     }
     string path = w2u8(dumpFilePath.native());
+
+    minidmpName = dumpFileName;
+    minidmpPath = path;
     pLogger->info("MiniDump generated at {}", path);
     return true;
 }
@@ -267,6 +283,7 @@ void DumpStacktrace(PEXCEPTION_POINTERS e) {
             sourceFile,
             sourceLine
         );
+        suspectedModules.insert(moduleName);
     }
 }
 
@@ -418,6 +435,26 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
     Break();
     DumpModules();
     pCombinedLogger->flush();
+
+    if (!crashlogger::isEnableSentry) {
+        pLogger->info("Sentry is disabled, skipping upload...");
+        SymCleanup(hProcess);
+        return;
+    }
+
+    SentryUploader sentryUploader{
+        crashlogger::UserName,
+        minidmpName,
+        minidmpPath,
+        traceName,
+        tracePath,
+        crashlogger::IsDev,
+        crashlogger::LeviVersion
+    };
+    for (auto& [name, dsn, version] : ModHelper::pendingMods) {
+        sentryUploader.addModSentryInfo(name, dsn, version);
+    }
+    sentryUploader.uploadAll();
     SymCleanup(hProcess);
 }
 

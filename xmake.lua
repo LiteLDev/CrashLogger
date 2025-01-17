@@ -1,14 +1,14 @@
 add_rules("mode.debug", "mode.release")
 
 add_requires(
-    "cxxopts",
-    "fmt",
-    "spdlog",
-    "zydis"
+    "cxxopts v3.1.1",
+    "fmt 9.1.0",
+    "spdlog v1.11.0",
+    "zydis v3.2.1",
+    "nlohmann_json v3.11.3"
 )
 
-set_policy("package.requires_lock", true)
-
+add_requires("cpr 1.10.5", {configs = {ssl = true}})
 if not has_config("vs_runtime") then
     set_runtimes("MD")
 end
@@ -27,7 +27,9 @@ target("CrashLogger")
         "cxxopts",
         "fmt",
         "spdlog",
-        "zydis"
+        "zydis",
+        "cpr",
+        "nlohmann_json"
     )
     add_syslinks(
         "dbghelp",
