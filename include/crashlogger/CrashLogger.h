@@ -1,6 +1,7 @@
 #pragma once
 
 #include "spdlog/spdlog.h"
+#include <vector>
 
 #include "crashlogger/Logger.h"
 

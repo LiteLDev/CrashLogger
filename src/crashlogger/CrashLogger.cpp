@@ -72,11 +72,11 @@ void ModernParseArgs(int argc, char** argv, std::string& bdsVersion, int& pid) {
         .add("s,silent", "Silent mode, no console output except for crash report and error messages")
         .add("b,bds", "The version of the BDS to be attached", cxxopts::value<std::string>()->default_value("0.0.0.0"))
         .add("p,pid", "The PID of the process to be attached", cxxopts::value<int>()->default_value("-1"))
+        .add("enablesentry", "Enable Sentry error reporting", cxxopts::value<bool>()->default_value("false"))
         .add("lv", "The version of LeviLamina", cxxopts::value<std::string>()->default_value(""))
         .add("isdev", "Whether the server is in development mode", cxxopts::value<bool>()->default_value("false"))
         .add("username", "The username of the user", cxxopts::value<std::string>()->default_value(""))
-        .add("moddir", "The directory of the mods", cxxopts::value<std::string>()->default_value(""))
-        .add("enablesentry", "Enable Sentry error reporting", cxxopts::value<bool>()->default_value("false"));
+        .add("moddir", "The directory of the mods", cxxopts::value<std::string>()->default_value(""));
 
     auto result = options.parse(argc, argv);
     if (result.count("help")) {

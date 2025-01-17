@@ -1,7 +1,9 @@
 #include "crashlogger/ModHelper.h"
+#include "crashlogger/CrashLogger.h"
 #include "crashlogger/Logger.h"
 #include "nlohmann/json.hpp"
 #include <fstream>
+#include <iostream>
 
 using namespace crashlogger::Logger;
 
@@ -27,7 +29,9 @@ void parseModSentryInfo(const std::filesystem::path& modPath) {
             continue;
 
         std::string moduleEntry = manifestJson.value("entry", "");
-        if (suspectedModules.find(moduleEntry) == suspectedModules.end())
+        bool        forceUpload = manifestJson.value("sentry-force-upload", false);
+
+        if (suspectedModules.find(moduleEntry) == suspectedModules.end() && !forceUpload)
             continue;
 
         std::string name    = manifestJson.value("name", "");
