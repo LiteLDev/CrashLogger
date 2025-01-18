@@ -190,13 +190,6 @@ void SentryUploader::sendToSentry(
         {"attachment_type", "event.attachment"                             }
     };
 
-    json attachMinidumpItemHeader = {
-        {"type",            "attachment"                             },
-        {"length",          static_cast<int>(mMinidumpContent.size())},
-        {"filename",        mMiniDumpName                            },
-        {"attachment_type", "event.attachment"                       }
-    };
-
     std::ostringstream envelopeStream;
 
     envelopeStream << envelopeHeader.dump() << "\n"
@@ -205,9 +198,7 @@ void SentryUploader::sendToSentry(
                    << minidumpItemHeader.dump() << "\n"
                    << mMinidumpContent << "\n"
                    << traceFileItemHeader.dump() << "\n"
-                   << mAdditionalFileContent << "\n"
-                   << attachMinidumpItemHeader.dump() << "\n"
-                   << mMinidumpContent << "\n";
+                   << mAdditionalFileContent << "\n";
 
     std::string compressedData = compressDataGzip(envelopeStream.str());
 
