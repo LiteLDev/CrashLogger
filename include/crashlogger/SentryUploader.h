@@ -7,7 +7,7 @@
 
 
 using json = nlohmann::json;
-
+namespace crashLogger {
 class SentryUploader {
 public:
     SentryUploader(
@@ -60,3 +60,4 @@ private:
     std::string             mAdditionalFileContent;
     std::vector<SentryInfo> mModsSentryConfig;
 };
+} // namespace CrashLogger

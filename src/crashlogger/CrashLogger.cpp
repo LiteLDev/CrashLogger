@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     SetConsoleOutputCP(CP_UTF8);
 
     pLogger = spdlog::stdout_color_mt("CrashLogger");
-    pLogger->set_pattern("[%H:%M:%S.%e] [%^%l%$] %v");
+    pLogger->set_pattern("%H:%M:%S.%e [%^%l%$] %v");
 
     if (argc == 1) {
         pLogger->error("Do not execute this process directly.");

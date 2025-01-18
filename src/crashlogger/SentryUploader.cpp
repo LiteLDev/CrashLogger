@@ -18,6 +18,7 @@ using json = nlohmann::json;
 using namespace crashlogger;
 using namespace crashlogger::Logger;
 
+namespace crashLogger {
 
 std::string compressDataGzip(const std::string& data) {
     std::ostringstream compressedStream;
@@ -232,3 +233,4 @@ void SentryUploader::sendToSentry(
         pLogger->error("Response: {}", response.text);
     }
 }
+} // namespace CrashLogger

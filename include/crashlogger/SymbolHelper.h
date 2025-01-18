@@ -8,8 +8,8 @@
 #include <dbghelp.h>
 
 namespace crashlogger::SymbolHelper {
-
-inline std::unordered_map<DWORD64, std::wstring> moduleMap;
+// unordered_map<ModuleBase, <ModuleName, ModuleSize>>
+inline std::unordered_map<DWORD64, std::pair<std::wstring, unsigned long>> moduleMap;
 
 PSYMBOL_INFO GetSymbolInfo(HANDLE hProcess, DWORD64 address, DWORD64* displacement);
 void         FreeSymbolInfo(PSYMBOL_INFO pSymbol);

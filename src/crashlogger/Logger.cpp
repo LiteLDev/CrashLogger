@@ -52,7 +52,7 @@ bool InitFileLogger() {
     path   logFilePath = logDirPath / logFileName;
     try {
         auto fileLoggerSink = make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true);
-        fileLoggerSink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
+        fileLoggerSink->set_pattern("%Y-%m-%d %H:%M:%S.%e [%l] %v");
         pCombinedLogger =
             make_shared<spdlog::logger>("combined", spdlog::sinks_init_list{pLogger->sinks().front(), fileLoggerSink});
     } catch (spdlog::spdlog_ex& ex) {
@@ -126,29 +126,31 @@ void DumpSystemInfo() {
     auto now = std::chrono::system_clock::now();
 
     pCombinedLogger->info("System Info: ");
-    pCombinedLogger->info("  OS Version: {}", SysInfoHelper::GetSystemVersion());
-    pCombinedLogger->info("  Is Wine: {}", SysInfoHelper::IsWine());
-    pCombinedLogger->info("  CPU: {}", SysInfoHelper::GetProcessorName());
-    pCombinedLogger->info("  CPU Counts: {}", SysInfoHelper::GetProcessorCount());
-    pCombinedLogger->info("  CPU Arch: {}", SysInfoHelper::GetProcessorArchitecture());
-    pCombinedLogger->info("  RAM: {} MB", SysInfoHelper::GetTotalPhysicalMemory() / 1024 / 1024);
-    pCombinedLogger->info("  Time: {}", fmt::format("{:%Y-%m-%dT%H:%M:%S.000%z}", fmt::localtime(now)));
+    pCombinedLogger->info(
+        "  |OS Version: {}",
+        SysInfoHelper::GetSystemVersion() + (SysInfoHelper::IsWine() ? " (wine)" : "")
+    );
+    pCombinedLogger->info("  |CPU: {}", SysInfoHelper::GetProcessorName());
+    pCombinedLogger->info("  |CPU Counts: {}", SysInfoHelper::GetProcessorCount());
+    pCombinedLogger->info("  |CPU Arch: {}", SysInfoHelper::GetProcessorArchitecture());
+    pCombinedLogger->info("  |RAM: {:.2f} GB", (double)SysInfoHelper::GetTotalPhysicalMemory() / 1024 / 1024 / 1024);
+    pCombinedLogger->info("  |LocalTime: {}", fmt::format("{0:%F %T} (UTC{0:%z})", fmt::localtime(_time64(nullptr))));
 }
 
 void DumpRegisters(PEXCEPTION_POINTERS e) {
     auto record = e->ContextRecord;
     pCombinedLogger->info("Registers: ");
-    pCombinedLogger->info("  RAX: 0x{:016X}  RBX: 0x{:016X}  RCX: 0x{:016X}", record->Rax, record->Rbx, record->Rcx);
-    pCombinedLogger->info("  RDX: 0x{:016X}  RSI: 0x{:016X}  RDI: 0x{:016X}", record->Rdx, record->Rsi, record->Rdi);
-    pCombinedLogger->info("  RBP: 0x{:016X}  RSP: 0x{:016X}  R8:  0x{:016X}", record->Rbp, record->Rsp, record->R8);
-    pCombinedLogger->info("  R9:  0x{:016X}  R10: 0x{:016X}  R11: 0x{:016X}", record->R9, record->R10, record->R11);
-    pCombinedLogger->info("  R12: 0x{:016X}  R13: 0x{:016X}  R14: 0x{:016X}", record->R12, record->R13, record->R14);
-    pCombinedLogger->info("  R15: 0x{:016X}", record->R15);
-    pCombinedLogger->info("  RIP: 0x{:016X}  EFLAGS: 0x{:08X}", record->Rip, record->EFlags);
-    pCombinedLogger->info("  DR0: 0x{:016X}  DR1: 0x{:016X}  DR2: 0x{:016X}", record->Dr0, record->Dr1, record->Dr2);
-    pCombinedLogger->info("  DR3: 0x{:016X}  DR6: 0x{:016X}  DR7: 0x{:016X}", record->Dr3, record->Dr6, record->Dr7);
+    pCombinedLogger->info("  |RAX: 0x{:016X}  RBX: 0x{:016X}  RCX: 0x{:016X}", record->Rax, record->Rbx, record->Rcx);
+    pCombinedLogger->info("  |RDX: 0x{:016X}  RSI: 0x{:016X}  RDI: 0x{:016X}", record->Rdx, record->Rsi, record->Rdi);
+    pCombinedLogger->info("  |RBP: 0x{:016X}  RSP: 0x{:016X}  R8:  0x{:016X}", record->Rbp, record->Rsp, record->R8);
+    pCombinedLogger->info("  |R9:  0x{:016X}  R10: 0x{:016X}  R11: 0x{:016X}", record->R9, record->R10, record->R11);
+    pCombinedLogger->info("  |R12: 0x{:016X}  R13: 0x{:016X}  R14: 0x{:016X}", record->R12, record->R13, record->R14);
+    pCombinedLogger->info("  |R15: 0x{:016X}", record->R15);
+    pCombinedLogger->info("  |RIP: 0x{:016X}  EFLAGS: 0x{:08X}", record->Rip, record->EFlags);
+    pCombinedLogger->info("  |DR0: 0x{:016X}  DR1: 0x{:016X}  DR2: 0x{:016X}", record->Dr0, record->Dr1, record->Dr2);
+    pCombinedLogger->info("  |DR3: 0x{:016X}  DR6: 0x{:016X}  DR7: 0x{:016X}", record->Dr3, record->Dr6, record->Dr7);
     pCombinedLogger->info(
-        "  CS: 0x{:04X}  DS: 0x{:04X}   ES: 0x{:04X}  FS: 0x{:04X}   GS: 0x{:04X}  SS: 0x{:04X}",
+        "  |CS: 0x{:04X}  DS: 0x{:04X}   ES: 0x{:04X}  FS: 0x{:04X}   GS: 0x{:04X}  SS: 0x{:04X}",
         record->SegCs,
         record->SegDs,
         record->SegEs,
@@ -164,26 +166,26 @@ void DumpLastAssembly(PEXCEPTION_POINTERS e) {
     char           instructions[MAX_INSTRUCTION_LEN];
     auto           startAddress = e->ContextRecord->Rip;
     if (!ReadProcessMemory(hProcess, (LPCVOID)(startAddress), instructions, MAX_INSTRUCTION_LEN, nullptr)) {
-        pCombinedLogger->error("  Failed to read memory from process! Error Code: 0x{:X}", GetLastError());
+        pCombinedLogger->error("  |Failed to read memory from process! Error Code: 0x{:X}", GetLastError());
         return;
     }
     ZydisDecoder            decoder;
     ZydisFormatter          formatter;
     ZydisDecodedInstruction instruction;
     if (!ZYAN_SUCCESS(ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_ADDRESS_WIDTH_64))) {
-        pCombinedLogger->info("  Failed to initialize decoder!");
+        pCombinedLogger->info("  |Failed to initialize decoder!");
         return;
     }
     if (!ZYAN_SUCCESS(ZydisFormatterInit(&formatter, ZYDIS_FORMATTER_STYLE_INTEL))) {
-        pCombinedLogger->info("  Failed to initialize formatter!");
+        pCombinedLogger->info("  |Failed to initialize formatter!");
         return;
     }
     if (ZYAN_SUCCESS(ZydisDecoderDecodeBuffer(&decoder, instructions, MAX_INSTRUCTION_LEN, &instruction))) {
         char buffer[256];
         ZydisFormatterFormatInstruction(&formatter, &instruction, buffer, sizeof(buffer), startAddress);
-        pCombinedLogger->info("  0x{:012X} --> {}", startAddress, buffer);
+        pCombinedLogger->info("  |0x{:012X} --> {}", startAddress, buffer);
     } else {
-        pCombinedLogger->info("  Failed to disassemble!");
+        pCombinedLogger->info("  |Failed to disassemble!");
     }
 }
 
@@ -195,15 +197,15 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
         w2u8(SymbolHelper::MapModuleFromAddr(hProcess, reinterpret_cast<DWORD64>(record->ExceptionAddress)));
     pCombinedLogger->info("Exception Info: ");
     if (record->ExceptionCode == CRT_EXCEPTION_CODE) {
-        pCombinedLogger->info("  C++ STL Exception detected");
+        pCombinedLogger->info("  |C++ STL Exception detected");
     }
-    pCombinedLogger->info("  Code: 0x{:X}", record->ExceptionCode);
-    pCombinedLogger->info("  Module: {}", moduleName);
-    pCombinedLogger->info("  Address: 0x{:012X}", (int64_t)record->ExceptionAddress);
-    pCombinedLogger->info("  Flags: 0x{:X}", record->ExceptionFlags);
-    pCombinedLogger->info("  Number of Parameters: {}", record->NumberParameters);
+    pCombinedLogger->info("  |Code: 0x{:X}", record->ExceptionCode);
+    pCombinedLogger->info("  |Module: {}", moduleName);
+    pCombinedLogger->info("  |Address: 0x{:012X}", (int64_t)record->ExceptionAddress);
+    pCombinedLogger->info("  |Flags: 0x{:X}", record->ExceptionFlags);
+    pCombinedLogger->info("  |Number of Parameters: {}", record->NumberParameters);
     for (int i = 0; i < record->NumberParameters; i++) {
-        pCombinedLogger->info("  Parameter {}: 0x{:X}", i, record->ExceptionInformation[i]);
+        pCombinedLogger->info("  |Parameter {}: 0x{:X}", i, record->ExceptionInformation[i]);
     }
 }
 
@@ -253,7 +255,7 @@ void DumpStacktrace(PEXCEPTION_POINTERS e) {
         string                       moduleName = w2u8(SymbolHelper::MapModuleFromAddr(hProcess, pc));
         std::unique_ptr<SYMBOL_INFO> info(SymbolHelper::GetSymbolInfo(hProcess, pc, &displacement));
         if (!info) {
-            pCombinedLogger->info("  #{} at pc 0x{:012X} {}", counter, pc, moduleName);
+            pCombinedLogger->info("  |{}> at pc 0x{:012X} {}", counter, pc, moduleName);
             continue;
         }
         string          symbolName       = MyUnDecorateSymbolName(info->Name);
@@ -262,8 +264,14 @@ void DumpStacktrace(PEXCEPTION_POINTERS e) {
         IMAGEHLP_LINE64 line{};
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
         if (!SymGetLineFromAddrW64(hProcess, pc, &lineDisplacement, &line)) {
-            pCombinedLogger
-                ->info("  #{} at pc 0x{:012X} {} -> {}+0x{:X}", counter, address, moduleName, symbolName, displacement);
+            pCombinedLogger->info(
+                "  |{}> at pc 0x{:012X} {} -> {}+0x{:X}",
+                counter,
+                address,
+                moduleName,
+                symbolName,
+                displacement
+            );
             continue;
         }
         string sourceFile = StringUtils::w2u8(line.FileName);
@@ -274,7 +282,7 @@ void DumpStacktrace(PEXCEPTION_POINTERS e) {
             sourceFile = sourceFile.substr(pos + 1);
         }
         pCombinedLogger->info(
-            "  #{} at pc 0x{:012X} {} -> {}+0x{:X} [{}:{}]",
+            "  |{}> at pc 0x{:012X} {} -> {}+0x{:X} [{}:{}]",
             counter,
             address,
             moduleName,
@@ -289,22 +297,28 @@ void DumpStacktrace(PEXCEPTION_POINTERS e) {
 
 void DumpModules() {
     using StringUtils::w2u8;
-
-    std::map<std::string, DWORD64> moduleMap;
-    for (auto& [moduleBase, wModuleName] : SymbolHelper::moduleMap) {
+    // map<pair<name, version>, pair<base, size>>
+    std::map<std::pair<std::string, std::string>, std::pair<DWORD64, unsigned long>> moduleMap;
+    for (auto& [moduleBase, moduleInfo] : SymbolHelper::moduleMap) {
         auto hModule       = reinterpret_cast<HMODULE>(moduleBase);
-        auto moduleName    = w2u8(wModuleName);
+        auto moduleName    = w2u8(moduleInfo.first);
         auto moduleVersion = w2u8(SymbolHelper::GetModuleVersionStr(hProcess, hModule));
-        auto moduleStr     = moduleName;
         if (moduleVersion.empty() && (moduleName == "bedrock_server_mod.exe" || moduleName == "bedrock_server.exe"))
             moduleVersion = crashlogger::BdsVersion;
-        if (!moduleVersion.empty())
-            moduleStr += "<" + moduleVersion + ">";
-        moduleMap[moduleStr] = moduleBase;
+        if (moduleVersion.empty()) {
+            moduleVersion = "0.1.0";
+        }
+        moduleMap[{moduleName, moduleVersion}] = {moduleBase, moduleInfo.second};
     }
     pCombinedLogger->info("Modules: ");
-    for (auto& [moduleName, moduleBase] : moduleMap) {
-        pCombinedLogger->info("  0x{:012X}  {}", moduleBase, moduleName);
+    for (auto& [nameVersion, baseSize] : moduleMap) {
+        pCombinedLogger->info(
+            "  |0x{:0>12X} [0x{:0>8X}] {}<{}>",
+            baseSize.first,
+            baseSize.second,
+            nameVersion.first,
+            nameVersion.second
+        );
     }
 }
 
@@ -442,7 +456,7 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
         return;
     }
 
-    SentryUploader sentryUploader{
+    crashLogger::SentryUploader sentryUploader{
         crashlogger::UserName,
         minidmpName,
         minidmpPath,

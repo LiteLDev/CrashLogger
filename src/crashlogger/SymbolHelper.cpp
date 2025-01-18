@@ -30,7 +30,7 @@ BOOL CALLBACK EnumerateModuleCallBack(
     [[maybe_unused]] PVOID UserContext
 ) {
     LPCWSTR name          = wcsrchr(ModuleName, TEXT('\\')) + 1;
-    moduleMap[ModuleBase] = name;
+    moduleMap[ModuleBase] = {name, ModuleSize};
     return TRUE;
 }
 
@@ -42,7 +42,7 @@ bool CreateModuleMap(HANDLE hProcess) {
     return true;
 }
 
-wstring MapModuleFromAddr(HANDLE hProcess, DWORD64 address) { return moduleMap[SymGetModuleBase64(hProcess, address)]; }
+wstring MapModuleFromAddr(HANDLE hProcess, DWORD64 address) { return moduleMap[SymGetModuleBase64(hProcess, address)].first; }
 
 bool GetFileVersion(
     const wchar_t*  filePath,
