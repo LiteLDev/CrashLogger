@@ -115,11 +115,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string bdsVersion;
     int         pid;
-    bool        legacy = LegacyParseArgs(argc, argv, bdsVersion, pid);
+    bool        legacy = LegacyParseArgs(argc, argv, crashlogger::BdsVersion, pid);
     if (!legacy) {
-        ModernParseArgs(argc, argv, bdsVersion, pid);
+        ModernParseArgs(argc, argv, crashlogger::BdsVersion, pid);
     }
 
     if (pid <= 0) {

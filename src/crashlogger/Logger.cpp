@@ -303,8 +303,9 @@ void DumpModules() {
         auto hModule       = reinterpret_cast<HMODULE>(moduleBase);
         auto moduleName    = w2u8(moduleInfo.first);
         auto moduleVersion = w2u8(SymbolHelper::GetModuleVersionStr(hProcess, hModule));
-        if (moduleVersion.empty() && (moduleName == "bedrock_server_mod.exe" || moduleName == "bedrock_server.exe"))
+        if (moduleName == "bedrock_server_mod.exe" || moduleName == "bedrock_server.exe") {
             moduleVersion = crashlogger::BdsVersion;
+        }
         if (moduleVersion.empty()) {
             moduleVersion = "0.1.0";
         }
