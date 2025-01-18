@@ -26,11 +26,15 @@ std::string compressDataGzip(const std::string& data) {
     if (deflateInit2(&deflateStream, Z_BEST_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
         throw std::runtime_error("Failed to initialize compression stream");
     }
-    deflateStream.avail_in = data.size();
+    if (data.size() > std::numeric_limits<uInt>::max()) {
+        deflateEnd(&deflateStream);
+        throw std::runtime_error("Data too large for compression");
+    }
+    deflateStream.avail_in = static_cast<uInt>(data.size());
     deflateStream.next_in  = (Bytef*)data.data();
     size_t bufferSize      = data.size();
     compressedBuffer.resize(bufferSize);
-    deflateStream.avail_out = bufferSize;
+    deflateStream.avail_out = static_cast<uInt>(bufferSize);
     deflateStream.next_out  = (Bytef*)compressedBuffer.data();
     if (deflate(&deflateStream, Z_FINISH) != Z_STREAM_END) {
         deflateEnd(&deflateStream);
