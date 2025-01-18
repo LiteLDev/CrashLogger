@@ -21,21 +21,24 @@ using namespace crashlogger::Logger;
 namespace crashLogger {
 
 std::string compressDataGzip(const std::string& data) {
-    std::ostringstream compressedStream;
-    gzFile             gzFile = gzopen("temp.gz", "wb");
-    if (!gzFile) {
-        throw std::runtime_error("Failed to open gzip stream");
+    std::vector<char> compressedBuffer;
+    z_stream          deflateStream{};
+    if (deflateInit2(&deflateStream, Z_BEST_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
+        throw std::runtime_error("Failed to initialize compression stream");
     }
-    int result = gzwrite(gzFile, data.data(), data.size());
-    if (result == 0) {
-        gzclose(gzFile);
+    deflateStream.avail_in = data.size();
+    deflateStream.next_in  = (Bytef*)data.data();
+    size_t bufferSize      = data.size();
+    compressedBuffer.resize(bufferSize);
+    deflateStream.avail_out = bufferSize;
+    deflateStream.next_out  = (Bytef*)compressedBuffer.data();
+    if (deflate(&deflateStream, Z_FINISH) != Z_STREAM_END) {
+        deflateEnd(&deflateStream);
         throw std::runtime_error("Gzip compression failed");
     }
-    gzclose(gzFile);
-    std::ifstream      inFile("temp.gz", std::ios::binary);
-    std::ostringstream resultStream;
-    resultStream << inFile.rdbuf();
-    return resultStream.str();
+    compressedBuffer.resize(deflateStream.total_out);
+    deflateEnd(&deflateStream);
+    return {compressedBuffer.begin(), compressedBuffer.end()};
 }
 
 std::string generateUUID() {
@@ -224,4 +227,4 @@ void SentryUploader::sendToSentry(
         pLogger->error("Response: {}", response.text);
     }
 }
-} // namespace CrashLogger
+} // namespace crashLogger
