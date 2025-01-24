@@ -45,6 +45,110 @@ std::filesystem::path logDirPath;
 
 std::string date;
 
+// From
+// https://github.com/LiteLDev/LeviLamina/blob/e4e0c8f3ba22050812980811e548f00931a7fc79/src/ll/api/utils/ErrorUtils_win.cpp
+
+class seh_exception : public std::system_error {
+private:
+    _EXCEPTION_POINTERS* expPtr;
+
+public:
+    seh_exception(uint ntStatus, _EXCEPTION_POINTERS* expPtr);
+
+    _EXCEPTION_POINTERS* getExceptionPointer() const noexcept { return expPtr; }
+};
+[[noreturn]] inline void translateSEHtoCE(uint ntStatus, struct _EXCEPTION_POINTERS* expPtr) {
+    throw seh_exception(ntStatus, expPtr);
+}
+
+struct MsvcExceptionRef {
+    static constexpr uint msc                = 0x6D7363; // 'msc'
+    static constexpr uint exceptionCodeOfCpp = (msc | 0xE0000000);
+
+    void*                      exceptionObject;
+    ::_EXCEPTION_RECORD const* exc;
+    void*                      handle    = nullptr;
+    ThrowInfo const*           throwInfo = nullptr;
+    _CatchableTypeArray const* cArray    = nullptr;
+
+    MsvcExceptionRef(::_EXCEPTION_RECORD const& er);
+
+    [[nodiscard]] uint getNumCatchableTypes() const { return cArray ? cArray->nCatchableTypes : 0u; }
+
+    [[nodiscard]] CatchableType const* cType(uint i) const {
+        return rva2va<CatchableType const*>(reinterpret_cast<uint const*>(cArray->arrayOfCatchableTypes)[i]);
+    }
+
+    [[nodiscard]] std::type_info const* getTypeInfo(uint i) const {
+        return rva2va<std::type_info const*>(cType(i)->pType);
+    }
+    [[nodiscard]] uint getThisDisplacement(uint i) const { return cType(i)->thisDisplacement.mdisp; }
+
+    template <class T>
+    [[nodiscard]] T rva2va(auto addr) const {
+        return reinterpret_cast<T>((uintptr_t)handle + (uintptr_t)(addr));
+    }
+};
+MsvcExceptionRef::MsvcExceptionRef(EXCEPTION_RECORD const& er)
+: exceptionObject(reinterpret_cast<void*>(er.ExceptionInformation[1])), exc(&er) {
+    if (exc->NumberParameters >= 3) {
+        handle    = (exc->NumberParameters >= 4) ? (void*)exc->ExceptionInformation[3] : nullptr;
+        throwInfo = (ThrowInfo const*)exc->ExceptionInformation[2];
+        if (throwInfo)
+            cArray = rva2va<_CatchableTypeArray const*>(throwInfo->pCatchableTypeArray);
+    }
+}
+
+struct ntstatus_category : public std::error_category {
+    constexpr ntstatus_category() noexcept : error_category() {}
+    [[nodiscard]] std::string message(int errCode) const override {
+        static DWORD langId = [] {
+            DWORD res;
+            if (GetLocaleInfoEx(
+                    LOCALE_NAME_SYSTEM_DEFAULT,
+                    LOCALE_SNAME | LOCALE_RETURN_NUMBER,
+                    reinterpret_cast<LPWSTR>(&res),
+                    sizeof(res) / sizeof(wchar_t)
+                ) == 0) {
+                res = 0;
+            }
+            return res;
+        }();
+        static auto nt = GetModuleHandleW(L"ntdll");
+
+        wchar_t* msg  = nullptr;
+        auto     size = FormatMessageW(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nt,
+            errCode,
+            langId,
+            (wchar_t*)&msg,
+            0,
+            nullptr
+        );
+        if (size) {
+            std::string res{StringUtils::w2a({msg, size})};
+            LocalFree(msg);
+            if (res.ends_with('\n')) {
+                res.pop_back();
+                if (res.ends_with('\r')) {
+                    res.pop_back();
+                }
+            }
+            return StringUtils::replaceAll(res, "\r\n", ", ");
+        }
+        return "unknown error";
+    }
+    [[nodiscard]] char const* name() const noexcept override { return "ntstatus"; }
+};
+
+inline std::error_category const& ntstatus_category() noexcept {
+    return std::_Immortalize_memcpy_image<struct ntstatus_category>();
+}
+
+seh_exception::seh_exception(uint ntStatus, _EXCEPTION_POINTERS* expPtr)
+: std::system_error(std::error_code{(int)ntStatus, ntstatus_category()}), expPtr(expPtr) {}
+
 bool InitFileLogger() {
     using namespace std;
     using namespace std::filesystem;
@@ -189,23 +293,84 @@ void DumpLastAssembly(PEXCEPTION_POINTERS e) {
     }
 }
 
+template <class T>
+T* tryGetException(MsvcExceptionRef const& exc) {
+    for (unsigned int i = 0, e = exc.getNumCatchableTypes(); i < e; i++) {
+        if ((*exc.getTypeInfo(i)) == typeid(T)) {
+            return reinterpret_cast<T*>(reinterpret_cast<char*>(exc.exceptionObject) + exc.getThisDisplacement(i));
+        }
+    }
+    return nullptr;
+}
+
 void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
     using StringUtils::w2u8;
 
     auto record = e->ExceptionRecord;
     auto moduleName =
         w2u8(SymbolHelper::MapModuleFromAddr(hProcess, reinterpret_cast<DWORD64>(record->ExceptionAddress)));
-    pCombinedLogger->info("Exception Info: ");
-    if (record->ExceptionCode == CRT_EXCEPTION_CODE) {
-        pCombinedLogger->info("  |C++ STL Exception detected");
-    }
-    pCombinedLogger->info("  |Code: 0x{:X}", record->ExceptionCode);
-    pCombinedLogger->info("  |Module: {}", moduleName);
-    pCombinedLogger->info("  |Address: 0x{:012X}", (int64_t)record->ExceptionAddress);
-    pCombinedLogger->info("  |Flags: 0x{:X}", record->ExceptionFlags);
-    pCombinedLogger->info("  |Number of Parameters: {}", record->NumberParameters);
-    for (int i = 0; i < record->NumberParameters; i++) {
-        pCombinedLogger->info("  |Parameter {}: 0x{:X}", i, record->ExceptionInformation[i]);
+    pCombinedLogger->info("Exception: ");
+    if (record->ExceptionCode == MsvcExceptionRef::exceptionCodeOfCpp) {
+        try {
+            MsvcExceptionRef exc{*record};
+            if (exc.getNumCatchableTypes() > 0) {
+                auto& type = *exc.getTypeInfo(0);
+                if (type == typeid(seh_exception)) {
+                    pCombinedLogger->info("  |Seh Exception, from <{}>:", moduleName);
+                    if (auto seh = tryGetException<seh_exception>(exc)) {
+                        pCombinedLogger->info(
+                            "[0x{:0>8X}:{}] {}",
+                            (uint)seh->code().value(),
+                            seh->code().category().name(),
+                            StringUtils::a2u8(seh->what())
+                        );
+                    }
+                    for (size_t i = 0; i < record->NumberParameters; i++) {
+                        pCombinedLogger->info("  |Parameter {}: {}", i, (void*)record->ExceptionInformation[i]);
+                    }
+                } else {
+                    pCombinedLogger->info("  |C++ Exception: {}, from <{}>:", type.name(), moduleName);
+                    if (auto pException = tryGetException<std::exception>(exc)) {
+                        pCombinedLogger->info("  |{}", StringUtils::a2u8(pException->what()));
+                    } else if (auto pException = tryGetException<std::system_error>(exc)) {
+                        pCombinedLogger->info(
+                            "[0x{:0>8X}:{}] {}",
+                            (uint)pException->code().value(),
+                            pException->code().category().name(),
+                            StringUtils::a2u8(pException->what())
+                        );
+                    } else if (auto pException = tryGetException<std::string>(exc)) {
+                        pCombinedLogger->info("  |{}", StringUtils::a2u8(*pException));
+                    } else if (auto pException = tryGetException<char const*>(exc)) {
+                        pCombinedLogger->info("  |{}", StringUtils::a2u8(*pException));
+                    } else {
+                        pCombinedLogger->info(
+                            "  |[0x{:0>8X}:{}] {}",
+                            (uint)record->ExceptionCode,
+                            ntstatus_category().name(),
+                            ntstatus_category().message((int)record->ExceptionCode)
+                        );
+                    }
+                }
+            } else {
+                pCombinedLogger->info("  |C++ Exception: unknown type, from <{}>:\n", moduleName);
+                pCombinedLogger->info(
+                    "  |[0x{:0>8X}:{}] {}",
+                    (uint)record->ExceptionCode,
+                    ntstatus_category().name(),
+                    ntstatus_category().message((int)record->ExceptionCode)
+                );
+            }
+        } catch (...) {
+        }
+    } else {
+        pCombinedLogger->info("  |Raw Seh Exception, from <{}>:", moduleName);
+        pCombinedLogger->info(
+            "  |[0x{:0>8X}:{}] {}",
+            (uint)record->ExceptionCode,
+            ntstatus_category().name(),
+            ntstatus_category().message((int)record->ExceptionCode)
+        );
     }
 }
 
