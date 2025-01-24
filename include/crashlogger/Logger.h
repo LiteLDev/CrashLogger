@@ -13,8 +13,6 @@
 #define CRASHLOGGER_TRACE_PREFIX    "trace_"
 #define CRASHLOGGER_MINIDUMP_PREFIX "minidump_"
 
-#define CRT_EXCEPTION_CODE 0xE06D7363
-
 namespace crashlogger::Logger {
 
 inline std::string                     minidmpPath;
@@ -31,6 +29,12 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
 
 #define uint unsigned int
 
+// MSVC has customized some functions and classes inside the compiler, but they are not included in IntelliSense. This
+// header file is only used for IntelliSense.
+#if defined(__INTELLISENSE__) || defined(__clang__) || defined(__clangd__)
+// NOLINTBEGIN
+#pragma pack(push, ehdata, 4)
+
 typedef struct _PMD {
     int mdisp; // Offset of intended data within base
     int pdisp; // Displacement to virtual base pointer
@@ -38,6 +42,8 @@ typedef struct _PMD {
 } _PMD;
 
 typedef void (*_PMFN)(void);
+
+#pragma pack(pop, ehdata)
 
 #pragma warning(disable : 4200)
 #pragma pack(push, _TypeDescriptor, 8)
@@ -83,5 +89,7 @@ struct ThrowInfo {
 #else
 using CatchableType = ::_CatchableType;
 using ThrowInfo     = ::_ThrowInfo;
+#endif
+// NOLINTEND
 #endif
 } // namespace crashlogger::Logger
