@@ -70,6 +70,10 @@ typedef const struct _s__CatchableTypeArray {
 } _CatchableTypeArray;
 #pragma warning(default : 4200)
 
+// NOLINTEND
+#endif
+
+// No one guarantees that the compiler's internal definitions are correct
 #if !(defined(__INTELLISENSE__) || defined(__clangd__))
 #pragma pack(push, 4)
 struct CatchableType {
@@ -89,7 +93,5 @@ struct ThrowInfo {
 #else
 using CatchableType = ::_CatchableType;
 using ThrowInfo     = ::_ThrowInfo;
-#endif
-// NOLINTEND
 #endif
 } // namespace crashlogger::Logger
