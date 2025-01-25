@@ -348,7 +348,7 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
                             "  |[0x{:0>8X}:{}] {}",
                             (uint)record->ExceptionCode,
                             ntstatus_category().name(),
-                            ntstatus_category().message((int)record->ExceptionCode)
+                            StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
                         );
                     }
                 }
@@ -358,7 +358,7 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
                     "  |[0x{:0>8X}:{}] {}",
                     (uint)record->ExceptionCode,
                     ntstatus_category().name(),
-                    ntstatus_category().message((int)record->ExceptionCode)
+                    StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
                 );
             }
         } catch (...) {
@@ -369,7 +369,7 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
             "  |[0x{:0>8X}:{}] {}",
             (uint)record->ExceptionCode,
             ntstatus_category().name(),
-            ntstatus_category().message((int)record->ExceptionCode)
+            StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
         );
     }
 }
