@@ -47,6 +47,7 @@ std::string date;
 
 // From
 // https://github.com/LiteLDev/LeviLamina/blob/e4e0c8f3ba22050812980811e548f00931a7fc79/src/ll/api/utils/ErrorUtils_win.cpp
+// Some functions are not used because I've given up to implement C++ exception handling.
 
 class seh_exception : public std::system_error {
 private:
@@ -57,9 +58,6 @@ public:
 
     _EXCEPTION_POINTERS* getExceptionPointer() const noexcept { return expPtr; }
 };
-[[noreturn]] inline void translateSEHtoCE(uint ntStatus, struct _EXCEPTION_POINTERS* expPtr) {
-    throw seh_exception(ntStatus, expPtr);
-}
 
 struct MsvcExceptionRef {
     static constexpr uint msc                = 0x6D7363; // 'msc'
@@ -148,6 +146,16 @@ inline std::error_category const& ntstatus_category() noexcept {
 
 seh_exception::seh_exception(uint ntStatus, _EXCEPTION_POINTERS* expPtr)
 : std::system_error(std::error_code{(int)ntStatus, ntstatus_category()}), expPtr(expPtr) {}
+
+template <class T>
+T* tryGetException(MsvcExceptionRef const& exc) {
+    for (unsigned int i = 0, e = exc.getNumCatchableTypes(); i < e; i++) {
+        if ((*exc.getTypeInfo(i)) == typeid(T)) {
+            return reinterpret_cast<T*>(reinterpret_cast<char*>(exc.exceptionObject) + exc.getThisDisplacement(i));
+        }
+    }
+    return nullptr;
+}
 
 bool InitFileLogger() {
     using namespace std;
@@ -293,16 +301,6 @@ void DumpLastAssembly(PEXCEPTION_POINTERS e) {
     }
 }
 
-template <class T>
-T* tryGetException(MsvcExceptionRef const& exc) {
-    for (unsigned int i = 0, e = exc.getNumCatchableTypes(); i < e; i++) {
-        if ((*exc.getTypeInfo(i)) == typeid(T)) {
-            return reinterpret_cast<T*>(reinterpret_cast<char*>(exc.exceptionObject) + exc.getThisDisplacement(i));
-        }
-    }
-    return nullptr;
-}
-
 void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
     using StringUtils::w2u8;
 
@@ -311,67 +309,16 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
         w2u8(SymbolHelper::MapModuleFromAddr(hProcess, reinterpret_cast<DWORD64>(record->ExceptionAddress)));
     pCombinedLogger->info("Exception: ");
     if (record->ExceptionCode == MsvcExceptionRef::exceptionCodeOfCpp) {
-        try {
-            MsvcExceptionRef exc{*record};
-            if (exc.getNumCatchableTypes() > 0) {
-                auto& type = *exc.getTypeInfo(0);
-                if (type == typeid(seh_exception)) {
-                    pCombinedLogger->info("  |Seh Exception, from <{}>:", moduleName);
-                    if (auto seh = tryGetException<seh_exception>(exc)) {
-                        pCombinedLogger->info(
-                            "[0x{:0>8X}:{}] {}",
-                            (uint)seh->code().value(),
-                            seh->code().category().name(),
-                            StringUtils::a2u8(seh->what())
-                        );
-                    }
-                    for (size_t i = 0; i < record->NumberParameters; i++) {
-                        pCombinedLogger->info("  |Parameter {}: {}", i, (void*)record->ExceptionInformation[i]);
-                    }
-                } else {
-                    pCombinedLogger->info("  |C++ Exception: {}, from <{}>:", type.name(), moduleName);
-                    if (auto pException = tryGetException<std::exception>(exc)) {
-                        pCombinedLogger->info("  |{}", StringUtils::a2u8(pException->what()));
-                    } else if (auto pException = tryGetException<std::system_error>(exc)) {
-                        pCombinedLogger->info(
-                            "[0x{:0>8X}:{}] {}",
-                            (uint)pException->code().value(),
-                            pException->code().category().name(),
-                            StringUtils::a2u8(pException->what())
-                        );
-                    } else if (auto pException = tryGetException<std::string>(exc)) {
-                        pCombinedLogger->info("  |{}", StringUtils::a2u8(*pException));
-                    } else if (auto pException = tryGetException<char const*>(exc)) {
-                        pCombinedLogger->info("  |{}", StringUtils::a2u8(*pException));
-                    } else {
-                        pCombinedLogger->info(
-                            "  |[0x{:0>8X}:{}] {}",
-                            (uint)record->ExceptionCode,
-                            ntstatus_category().name(),
-                            StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
-                        );
-                    }
-                }
-            } else {
-                pCombinedLogger->info("  |C++ Exception: unknown type, from <{}>:\n", moduleName);
-                pCombinedLogger->info(
-                    "  |[0x{:0>8X}:{}] {}",
-                    (uint)record->ExceptionCode,
-                    ntstatus_category().name(),
-                    StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
-                );
-            }
-        } catch (...) {
-        }
+        pCombinedLogger->info("  |C++ Exception, from <{}>:", moduleName);
     } else {
         pCombinedLogger->info("  |Raw Seh Exception, from <{}>:", moduleName);
-        pCombinedLogger->info(
-            "  |[0x{:0>8X}:{}] {}",
-            (uint)record->ExceptionCode,
-            ntstatus_category().name(),
-            StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
-        );
     }
+    pCombinedLogger->info(
+        "  |[0x{:0>8X}:{}] {}",
+        (uint)record->ExceptionCode,
+        ntstatus_category().name(),
+        StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
+    );
 }
 
 std::string MyUnDecorateSymbolName(const wchar_t* name) {
