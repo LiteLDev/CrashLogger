@@ -10,6 +10,7 @@ struct ModInfo {
     std::string name;
     std::string dsn;
     std::string version;
+    bool        inSuspectedModule;
 };
 inline std::vector<ModInfo> pendingMods;
 

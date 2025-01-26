@@ -20,7 +20,12 @@ public:
         const std::string& leviLaminaVersion
     );
 
-    void addModSentryInfo(const std::string& modName, const std::string& dsn, const std::string& releaseVersion);
+    void addModSentryInfo(
+        const std::string& modName,
+        const std::string& dsn,
+        const std::string& releaseVersion,
+        bool               isInSuspectedModules
+    );
     void uploadAll();
 
 private:
@@ -34,6 +39,7 @@ private:
         std::string dsn;
         std::string modName;
         std::string releaseVersion;
+        bool        isFatal = false;
     };
 
     std::string readFile(const std::string& filePath);
@@ -60,4 +66,4 @@ private:
     std::string             mAdditionalFileContent;
     std::vector<SentryInfo> mModsSentryConfig;
 };
-} // namespace CrashLogger
+} // namespace crashLogger

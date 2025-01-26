@@ -578,8 +578,8 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
         crashlogger::IsDev,
         crashlogger::LeviVersion
     };
-    for (auto& [name, dsn, version] : ModHelper::pendingMods) {
-        sentryUploader.addModSentryInfo(name, dsn, version);
+    for (auto& [name, dsn, version, isInSuspectedModules] : ModHelper::pendingMods) {
+        sentryUploader.addModSentryInfo(name, dsn, version, isInSuspectedModules);
     }
     sentryUploader.uploadAll();
     SymCleanup(hProcess);

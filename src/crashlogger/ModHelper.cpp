@@ -31,12 +31,13 @@ void parseModSentryInfo(const std::filesystem::path& modPath) {
         std::string moduleEntry = manifestJson.value("entry", "");
         bool        forceUpload = manifestJson.value("sentry-force-upload", false);
 
-        if (suspectedModules.find(moduleEntry) == suspectedModules.end() && !forceUpload)
+        bool isInSuspectedModules = (suspectedModules.find(moduleEntry) != suspectedModules.end());
+        if (!isInSuspectedModules && !forceUpload)
             continue;
 
         std::string name    = manifestJson.value("name", "");
         std::string version = manifestJson.value("version", "");
-        pendingMods.emplace_back(name, dsn, version);
+        pendingMods.emplace_back(name, dsn, version, isInSuspectedModules);
     }
 }
 
