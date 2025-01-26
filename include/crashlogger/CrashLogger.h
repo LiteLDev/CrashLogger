@@ -5,7 +5,7 @@
 
 #include "crashlogger/Logger.h"
 
-#define CRASHLOGGER_VERSION "v1.1.1"
+#define CRASHLOGGER_VERSION "v1.2.0"
 
 namespace crashlogger {
 
