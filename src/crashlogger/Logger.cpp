@@ -277,7 +277,7 @@ std::string MyUnDecorateSymbolName(const wchar_t* name) {
 void dumpMemoryInfo() {
     pCombinedLogger->info("Memory Info:");
     PROCESS_MEMORY_COUNTERS_EX info{.cb = sizeof(PROCESS_MEMORY_COUNTERS_EX)};
-    GetProcessMemoryInfo(GetCurrentProcess(), (PPROCESS_MEMORY_COUNTERS)&info, info.cb);
+    GetProcessMemoryInfo(hProcess, (PPROCESS_MEMORY_COUNTERS)&info, info.cb);
     pCombinedLogger->info("  |heap stats: {:>12} {:>12}", "peak", "current");
     pCombinedLogger->info("  |workingset: {:>12} {:>12}", memStr(info.PeakWorkingSetSize), memStr(info.WorkingSetSize));
     pCombinedLogger
