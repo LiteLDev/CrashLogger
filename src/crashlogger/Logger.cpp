@@ -242,6 +242,56 @@ void DumpSystemInfo() {
     pCombinedLogger->info("  |LocalTime: {}", fmt::format("{0:%F %T} (UTC{0:%z})", fmt::localtime(_time64(nullptr))));
 }
 
+std::string MyUnDecorateSymbolName(const wchar_t* name) {
+    std::wstring undecoratedName(0x1000, 0);
+
+    auto decorateFlag = UNDNAME_NAME_ONLY | UNDNAME_NO_THISTYPE | UNDNAME_NO_ACCESS_SPECIFIERS |
+                        UNDNAME_NO_ALLOCATION_MODEL | UNDNAME_NO_ALLOCATION_LANGUAGE | UNDNAME_NO_CV_THISTYPE |
+                        UNDNAME_NO_FUNCTION_RETURNS | UNDNAME_NO_LEADING_UNDERSCORES | UNDNAME_NO_MEMBER_TYPE |
+                        UNDNAME_NO_MS_KEYWORDS | UNDNAME_NO_RETURN_UDT_MODEL | UNDNAME_NO_THROW_SIGNATURES;
+    if (auto size = UnDecorateSymbolNameW(name, undecoratedName.data(), undecoratedName.size(), decorateFlag)) {
+        undecoratedName.resize(size);
+        return StringUtils::w2u8(undecoratedName);
+    }
+    return StringUtils::w2u8(name);
+}
+
+[[maybe_unused]] static std::string memStr(size_t mem) {
+    double r  = (double)mem;
+    r        /= 1024;
+    if (r < 1024) {
+        return ::fmt::format("{:>8.1f} KiB", r);
+    }
+    r /= 1024;
+    if (r < 1024) {
+        return ::fmt::format("{:>8.1f} MiB", r);
+    }
+    r /= 1024;
+    if (r < 1024) {
+        return ::fmt::format("{:>8.1f} GiB", r);
+    }
+    r /= 1024;
+    return ::fmt::format("{:>8.1f} TiB", r);
+}
+
+void dumpMemoryInfo() {
+    pCombinedLogger->info("Memory Info:");
+    PROCESS_MEMORY_COUNTERS_EX info{.cb = sizeof(PROCESS_MEMORY_COUNTERS_EX)};
+    GetProcessMemoryInfo(GetCurrentProcess(), (PPROCESS_MEMORY_COUNTERS)&info, info.cb);
+    pCombinedLogger->info("  |heap stats: {:>12} {:>12}", "peak", "current");
+    pCombinedLogger->info("  |workingset: {:>12} {:>12}", memStr(info.PeakWorkingSetSize), memStr(info.WorkingSetSize));
+    pCombinedLogger
+        ->info("  | pagedpool: {:>12} {:>12}", memStr(info.QuotaPeakPagedPoolUsage), memStr(info.QuotaPagedPoolUsage));
+    pCombinedLogger->info(
+        "  |  nonpaged: {:>12} {:>12}",
+        memStr(info.QuotaPeakNonPagedPoolUsage),
+        memStr(info.QuotaNonPagedPoolUsage)
+    );
+    pCombinedLogger->info("  |  pagefile: {:>12} {:>12}", memStr(info.PeakPagefileUsage), memStr(info.PagefileUsage));
+    pCombinedLogger->info("  |   private: {:>12} {:>12}", "", memStr(info.PrivateUsage));
+    pCombinedLogger->info("  | pagefault: {:>12} {:>8}", "", info.PageFaultCount);
+}
+
 void DumpRegisters(PEXCEPTION_POINTERS e) {
     auto record = e->ContextRecord;
     pCombinedLogger->info("Registers: ");
@@ -315,20 +365,6 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
     for (size_t i = 0; i < record->NumberParameters; i++) {
         pCombinedLogger->info("  |Parameter {}: {}", i, (void*)record->ExceptionInformation[i]);
     }
-}
-
-std::string MyUnDecorateSymbolName(const wchar_t* name) {
-    std::wstring undecoratedName(0x1000, 0);
-
-    auto decorateFlag = UNDNAME_NAME_ONLY | UNDNAME_NO_THISTYPE | UNDNAME_NO_ACCESS_SPECIFIERS |
-                        UNDNAME_NO_ALLOCATION_MODEL | UNDNAME_NO_ALLOCATION_LANGUAGE | UNDNAME_NO_CV_THISTYPE |
-                        UNDNAME_NO_FUNCTION_RETURNS | UNDNAME_NO_LEADING_UNDERSCORES | UNDNAME_NO_MEMBER_TYPE |
-                        UNDNAME_NO_MS_KEYWORDS | UNDNAME_NO_RETURN_UDT_MODEL | UNDNAME_NO_THROW_SIGNATURES;
-    if (auto size = UnDecorateSymbolNameW(name, undecoratedName.data(), undecoratedName.size(), decorateFlag)) {
-        undecoratedName.resize(size);
-        return StringUtils::w2u8(undecoratedName);
-    }
-    return StringUtils::w2u8(name);
 }
 
 void DumpStacktrace(PEXCEPTION_POINTERS e) {
@@ -547,6 +583,8 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
     }
 
     DumpSystemInfo();
+    Break();
+    dumpMemoryInfo();
     Break();
     DumpExceptionInfo(e);
     Break();
