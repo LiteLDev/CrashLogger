@@ -313,7 +313,7 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
         StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
     );
     for (size_t i = 0; i < record->NumberParameters; i++) {
-        pCombinedLogger->info("\nParameter {}: {}", i, (void*)record->ExceptionInformation[i]);
+        pCombinedLogger->info("  |Parameter {}: {}", i, (void*)record->ExceptionInformation[i]);
     }
 }
 
