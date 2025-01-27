@@ -245,7 +245,14 @@ void DumpSystemInfo() {
     pCombinedLogger->info("  |CPU: {}", SysInfoHelper::GetProcessorName());
     pCombinedLogger->info("  |CPU Counts: {}", SysInfoHelper::GetProcessorCount());
     pCombinedLogger->info("  |CPU Arch: {}", SysInfoHelper::GetProcessorArchitecture());
-    pCombinedLogger->info("  |RAM: {:.2f} GB", (double)SysInfoHelper::GetTotalPhysicalMemory() / 1024 / 1024 / 1024);
+    auto totalPhyMem = (double)SysInfoHelper::GetTotalPhysicalMemory();
+    auto availPhyMem = (double)SysInfoHelper::GetAvailablePhysicalMemory();
+    pCombinedLogger->info(
+        "  |RAM: {:.2f}/{:.2f} GB {:.2f}%",
+        (totalPhyMem - availPhyMem) / 1024 / 1024 / 1024,
+        totalPhyMem / 1024 / 1024 / 1024,
+        (totalPhyMem - availPhyMem) / totalPhyMem * 100
+    );
     pCombinedLogger->info("  |LocalTime: {}", fmt::format("{0:%F %T} (UTC{0:%z})", fmt::localtime(_time64(nullptr))));
 }
 

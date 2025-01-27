@@ -12,6 +12,8 @@ std::string GetProcessorArchitecture();
 
 uint64_t GetTotalPhysicalMemory();
 
+uint64_t GetAvailablePhysicalMemory();
+
 uint32_t GetProcessorCount();
 
 bool IsWine();

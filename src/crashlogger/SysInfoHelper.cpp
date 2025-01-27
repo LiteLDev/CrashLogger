@@ -99,6 +99,13 @@ uint64_t GetTotalPhysicalMemory() {
     return memoryStatus.ullTotalPhys;
 }
 
+uint64_t GetAvailablePhysicalMemory() {
+    MEMORYSTATUSEX memoryStatus;
+    memoryStatus.dwLength = sizeof(memoryStatus);
+    GlobalMemoryStatusEx(&memoryStatus);
+    return memoryStatus.ullAvailPhys;
+}
+
 bool IsWine() {
     HMODULE hNtdll = GetModuleHandleA("ntdll.dll");
     if (hNtdll == nullptr) {
