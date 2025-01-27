@@ -312,6 +312,9 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
         ntstatus_category().name(),
         StringUtils::a2u8(ntstatus_category().message((int)record->ExceptionCode))
     );
+    for (size_t i = 0; i < record->NumberParameters; i++) {
+        pCombinedLogger->info("\nParameter {}: {}", i, (void*)record->ExceptionInformation[i]);
+    }
 }
 
 std::string MyUnDecorateSymbolName(const wchar_t* name) {
