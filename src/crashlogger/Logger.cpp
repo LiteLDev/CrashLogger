@@ -49,16 +49,6 @@ std::string date;
 // https://github.com/LiteLDev/LeviLamina/blob/e4e0c8f3ba22050812980811e548f00931a7fc79/src/ll/api/utils/ErrorUtils_win.cpp
 // Some functions are not used because I've given up to implement C++ exception handling.
 
-class seh_exception : public std::system_error {
-private:
-    _EXCEPTION_POINTERS* expPtr;
-
-public:
-    seh_exception(uint ntStatus, _EXCEPTION_POINTERS* expPtr);
-
-    _EXCEPTION_POINTERS* getExceptionPointer() const noexcept { return expPtr; }
-};
-
 struct MsvcExceptionRef {
     static constexpr uint msc                = 0x6D7363; // 'msc'
     static constexpr uint exceptionCodeOfCpp = (msc | 0xE0000000);
@@ -143,9 +133,6 @@ struct ntstatus_category : public std::error_category {
 inline std::error_category const& ntstatus_category() noexcept {
     return std::_Immortalize_memcpy_image<struct ntstatus_category>();
 }
-
-seh_exception::seh_exception(uint ntStatus, _EXCEPTION_POINTERS* expPtr)
-: std::system_error(std::error_code{(int)ntStatus, ntstatus_category()}), expPtr(expPtr) {}
 
 template <class T>
 T* tryGetException(MsvcExceptionRef const& exc) {
@@ -235,7 +222,6 @@ bool GenerateMiniDumpFile(PEXCEPTION_POINTERS e) {
 
 void DumpSystemInfo() {
     using namespace crashlogger;
-    auto now = std::chrono::system_clock::now();
 
     pCombinedLogger->info("System Info: ");
     pCombinedLogger->info(
