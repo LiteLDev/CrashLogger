@@ -24,12 +24,12 @@ void parseModSentryInfo(const std::filesystem::path& modPath) {
 
         nlohmann::json manifestJson;
         manifestFile >> manifestJson;
-        std::string dsn = manifestJson.value("sentry_dsn", "");
+        std::string dsn = manifestJson.value("sentry-dsn", "");
         if (dsn.empty())
             continue;
 
         std::string moduleEntry = manifestJson.value("entry", "");
-        bool        forceUpload = manifestJson.value("sentry_force_upload", false);
+        bool        forceUpload = manifestJson.value("sentry-force-upload", false);
 
         bool isInSuspectedModules = (suspectedModules.find(moduleEntry) != suspectedModules.end());
         if (!isInSuspectedModules && !forceUpload)
