@@ -248,7 +248,7 @@ void DumpSystemInfo() {
     auto totalPhyMem = (double)SysInfoHelper::GetTotalPhysicalMemory();
     auto availPhyMem = (double)SysInfoHelper::GetAvailablePhysicalMemory();
     pCombinedLogger->info(
-        "  |RAM: {:.2f}/{:.2f} GB {:.2f}%",
+        "  |RAM: {:.2f}/{:.2f} GB ({:.2f}%)",
         (totalPhyMem - availPhyMem) / 1024 / 1024 / 1024,
         totalPhyMem / 1024 / 1024 / 1024,
         (totalPhyMem - availPhyMem) / totalPhyMem * 100
