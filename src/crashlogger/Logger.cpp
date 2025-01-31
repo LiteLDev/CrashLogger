@@ -49,6 +49,17 @@ std::string date;
 // https://github.com/LiteLDev/LeviLamina/blob/e4e0c8f3ba22050812980811e548f00931a7fc79/src/ll/api/utils/ErrorUtils_win.cpp
 // Some functions are not used because I've given up to implement C++ exception handling.
 
+namespace buffers {
+constexpr auto ThrowInfoSize = sizeof(ThrowInfo);
+char           ThrowInfoBuffer[ThrowInfoSize];
+constexpr auto CatchableTypeArraySize = sizeof(_CatchableTypeArray);
+char           CatchableTypeArrayBuffer[CatchableTypeArraySize];
+constexpr auto CatchableTypeSize = sizeof(CatchableType);
+char           CatchableTypeBuffer[CatchableTypeSize];
+constexpr auto TypeInfoSize = sizeof(std::type_info);
+char           TypeInfoBuffer[TypeInfoSize];
+} // namespace buffers
+
 struct MsvcExceptionRef {
     static constexpr uint msc                = 0x6D7363; // 'msc'
     static constexpr uint exceptionCodeOfCpp = (msc | 0xE0000000);
@@ -64,11 +75,27 @@ struct MsvcExceptionRef {
     [[nodiscard]] uint getNumCatchableTypes() const { return cArray ? cArray->nCatchableTypes : 0u; }
 
     [[nodiscard]] CatchableType const* cType(uint i) const {
-        return rva2va<CatchableType const*>(reinterpret_cast<uint const*>(cArray->arrayOfCatchableTypes)[i]);
+        using namespace buffers;
+        if (!ReadProcessMemory(
+                hProcess,
+                rva2va<LPCVOID>(reinterpret_cast<uint const*>(cArray->arrayOfCatchableTypes)[i]),
+                CatchableTypeBuffer,
+                CatchableTypeSize,
+                nullptr
+            )) {
+            pCombinedLogger->error("Failed to read CatchableType from process! Error Code: 0x{:X}", GetLastError());
+            return nullptr;
+        }
+        return (CatchableType const*)CatchableTypeBuffer;
     }
 
     [[nodiscard]] std::type_info const* getTypeInfo(uint i) const {
-        return rva2va<std::type_info const*>(cType(i)->pType);
+        using namespace buffers;
+        if (!ReadProcessMemory(hProcess, rva2va<LPCVOID>(cType(i)->pType), TypeInfoBuffer, TypeInfoSize, nullptr)) {
+            pCombinedLogger->error("Failed to read TypeInfo from process! Error Code: 0x{:X}", GetLastError());
+            return nullptr;
+        }
+        return (std::type_info const*)TypeInfoBuffer;
     }
     [[nodiscard]] uint getThisDisplacement(uint i) const { return cType(i)->thisDisplacement.mdisp; }
 
@@ -77,13 +104,37 @@ struct MsvcExceptionRef {
         return reinterpret_cast<T>((uintptr_t)handle + (uintptr_t)(addr));
     }
 };
+
 MsvcExceptionRef::MsvcExceptionRef(EXCEPTION_RECORD const& er)
 : exceptionObject(reinterpret_cast<void*>(er.ExceptionInformation[1])), exc(&er) {
+    using namespace buffers;
     if (exc->NumberParameters >= 3) {
         handle    = (exc->NumberParameters >= 4) ? (void*)exc->ExceptionInformation[3] : nullptr;
         throwInfo = (ThrowInfo const*)exc->ExceptionInformation[2];
-        if (throwInfo)
-            cArray = rva2va<_CatchableTypeArray const*>(throwInfo->pCatchableTypeArray);
+        if (throwInfo) {
+            if (!ReadProcessMemory(hProcess, (LPCVOID)throwInfo, ThrowInfoBuffer, ThrowInfoSize, nullptr)) {
+                pCombinedLogger->error(
+                    "Failed to read ExceptionInformation from process! Error Code: 0x{:X}",
+                    GetLastError()
+                );
+                return;
+            }
+            throwInfo = (ThrowInfo const*)ThrowInfoBuffer;
+            if (!ReadProcessMemory(
+                    hProcess,
+                    rva2va<LPCVOID>(throwInfo->pCatchableTypeArray),
+                    CatchableTypeArrayBuffer,
+                    CatchableTypeArraySize,
+                    nullptr
+                )) {
+                pCombinedLogger->error(
+                    "Failed to read CatchableTypeArray from process! Error Code: 0x{:X}",
+                    GetLastError()
+                );
+                return;
+            }
+            cArray = (_CatchableTypeArray const*)CatchableTypeArrayBuffer;
+        }
     }
 }
 
@@ -352,7 +403,46 @@ void DumpExceptionInfo(PEXCEPTION_POINTERS e) {
         w2u8(SymbolHelper::MapModuleFromAddr(hProcess, reinterpret_cast<DWORD64>(record->ExceptionAddress)));
     pCombinedLogger->info("Exception: ");
     if (record->ExceptionCode == MsvcExceptionRef::exceptionCodeOfCpp) {
-        pCombinedLogger->info("  |C++ Exception, from <{}>:", moduleName);
+        try {
+            MsvcExceptionRef exc{*record};
+            if (exc.getNumCatchableTypes() > 0) {
+                auto& type = *exc.getTypeInfo(0);
+                pCombinedLogger->info("  |C++ Exception: {}, from <{}>:", type.name(), moduleName);
+                if (type == typeid(std::system_error)) {
+                    auto sysErr = tryGetException<std::system_error>(exc);
+                    if (sysErr) {
+                        pCombinedLogger->info(
+                            "  |[0x{:0>8X}:{}] {}",
+                            (uint)sysErr->code().value(),
+                            sysErr->code().category().name(),
+                            StringUtils::a2u8(sysErr->what())
+                        );
+                    }
+                    return;
+                } else if (type == typeid(std::exception)) {
+                    auto stdExc = tryGetException<std::exception>(exc);
+                    if (stdExc) {
+                        pCombinedLogger->info("  |{}", StringUtils::a2u8(stdExc->what()));
+                    }
+                    return;
+                } else if (type == typeid(std::string)) {
+                    auto strExc = tryGetException<std::string>(exc);
+                    if (strExc) {
+                        pCombinedLogger->info("  |{}", *strExc);
+                    }
+                    return;
+                } else if (type == typeid(const char*)) {
+                    auto cstrExc = tryGetException<const char*>(exc);
+                    if (cstrExc) {
+                        pCombinedLogger->info("  |{}", *cstrExc);
+                    }
+                    return;
+                }
+            } else {
+                pCombinedLogger->info("  |C++ Exception: unknown type, from <{}>:\n", moduleName);
+            }
+        } catch (...) {
+        }
     } else {
         pCombinedLogger->info("  |Raw Seh Exception, from <{}>:", moduleName);
     }
