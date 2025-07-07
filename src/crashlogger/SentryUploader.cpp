@@ -8,7 +8,6 @@
 #include <zlib.h>
 
 #include "crashlogger/CrashLogger.h"
-#include "crashlogger/Logger.h"
 #include "crashlogger/ModHelper.h"
 #include "crashlogger/SentryUploader.h"
 #include "crashlogger/SysInfoHelper.h"
@@ -17,6 +16,8 @@
 using json = nlohmann::json;
 using namespace crashlogger;
 using namespace crashlogger::Logger;
+
+extern std::shared_ptr<spdlog::logger> pCombinedLogger;
 
 namespace crashLogger {
 
@@ -117,7 +118,7 @@ void SentryUploader::addModSentryInfo(
 
         mModsSentryConfig.push_back({info, dsn, modName, releaseVersion, isInSuspectedModules});
     } catch (const std::exception& e) {
-        pLogger->error("Error adding mod sentry info: {}", e.what());
+        pCombinedLogger->error("Error adding mod sentry info: {}", e.what());
         return;
     }
 }
@@ -126,8 +127,8 @@ void SentryUploader::uploadAll() {
     std::vector<std::thread> threads;
 
     threads.reserve(mModsSentryConfig.size());
-    pLogger->info("");
-    pLogger->info("Uploading crash report to Sentry...");
+    pCombinedLogger->info("");
+    pCombinedLogger->info("Uploading crash report to Sentry...");
     for (const auto& sentryConfig : mModsSentryConfig) {
         threads.emplace_back([=, this]() {
             try {
@@ -155,7 +156,7 @@ void SentryUploader::uploadAll() {
 
                 sendToSentry(sentryConfig, url, envelopeHeader, eventPayload);
             } catch (const std::exception& e) {
-                pLogger->error("Error uploading to DSN: {}, Error: {}", sentryConfig.dsn, e.what());
+                pCombinedLogger->error("Error uploading to DSN: {}, Error: {}", sentryConfig.dsn, e.what());
             }
         });
     }
@@ -224,12 +225,12 @@ void SentryUploader::sendToSentry(
     );
 
     if (response.status_code == 200) {
-        pLogger->info("Mod: {} uploaded successfully to Sentry", sentryInfo.modName);
-        pLogger->info("Event ID: {}", json::parse(response.text)["id"]);
+        pCombinedLogger->info("Mod: {} uploaded successfully to Sentry", sentryInfo.modName);
+        pCombinedLogger->info("Event ID: {}", json::parse(response.text)["id"]);
     } else {
-        pLogger->error("Mod: {} Failed to upload to Sentry", sentryInfo.modName);
-        pLogger->error("Status Code: {}", response.status_code);
-        pLogger->error("Response: {}", response.text);
+        pCombinedLogger->error("Mod: {} Failed to upload to Sentry", sentryInfo.modName);
+        pCombinedLogger->error("Status Code: {}", response.status_code);
+        pCombinedLogger->error("Response: {}", response.text);
     }
 }
 } // namespace crashLogger

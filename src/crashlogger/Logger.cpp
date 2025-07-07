@@ -617,6 +617,7 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
     }
     sentryUploader.uploadAll();
     SymCleanup(hProcess);
+    pCombinedLogger->flush();
 }
 
 } // namespace crashlogger::Logger
