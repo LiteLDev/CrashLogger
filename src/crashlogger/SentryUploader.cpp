@@ -1,9 +1,9 @@
 #include <cpr/cpr.h>
 #include <fstream>
 #include <iostream>
-#include <objbase.h>
 #include <random>
 #include <sstream>
+#include <utility>
 
 #include <zlib.h>
 
@@ -72,21 +72,21 @@ std::string generateUUID() {
 }
 
 SentryUploader::SentryUploader(
-    const std::string& user,
-    const std::string& minidmpName,
+    std::string  user,
+    std::string  minidmpName,
     const std::string& minidumpPath,
-    const std::string& traceName,
+    std::string  traceName,
     const std::string& tracePath,
     bool               isDev,
-    const std::string& leviLaminaVersion
+    std::string  leviLaminaVersion
 )
-: mUser(user),
-  mMiniDumpName(minidmpName),
+: mUser(std::move(user)),
+  mMiniDumpName(std::move(minidmpName)),
   mMinidumpPath(minidumpPath),
-  mTraceName(traceName),
+  mTraceName(std::move(traceName)),
   mTracePath(tracePath),
   mIsDev(isDev),
-  mLeviLaminaVersion(leviLaminaVersion) {
+  mLeviLaminaVersion(std::move(leviLaminaVersion)) {
     mMinidumpContent       = readFile(minidumpPath);
     mAdditionalFileContent = readFile(tracePath);
     mOSInfo.name           = SysInfoHelper::IsWine() ? "Linux(Wine)" : "Windows";
@@ -226,7 +226,7 @@ void SentryUploader::sendToSentry(
 
     if (response.status_code == 200) {
         pCombinedLogger->info("Mod: {} uploaded successfully to Sentry", sentryInfo.modName);
-        pCombinedLogger->info("Event ID: {}", json::parse(response.text)["id"]);
+        pCombinedLogger->info("Event ID: {}", json::parse(response.text)["id"].get<std::string>());
     } else {
         pCombinedLogger->error("Mod: {} Failed to upload to Sentry", sentryInfo.modName);
         pCombinedLogger->error("Status Code: {}", response.status_code);

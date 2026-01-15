@@ -11,13 +11,13 @@ namespace crashLogger {
 class SentryUploader {
 public:
     SentryUploader(
-        const std::string& user,
-        const std::string& minidmpName,
+        std::string  user,
+        std::string  minidmpName,
         const std::string& minidumpPath,
-        const std::string& traceName,
+        std::string  traceName,
         const std::string& tracePath,
         bool               isDev,
-        const std::string& leviLaminaVersion
+        std::string  leviLaminaVersion
     );
 
     void addModSentryInfo(

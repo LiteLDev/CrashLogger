@@ -1,9 +1,9 @@
 add_rules("mode.debug", "mode.release")
 
 add_requires(
-    "cxxopts v3.1.1",
-    "fmt 9.1.0",
-    "spdlog v1.11.0",
+    "cxxopts v3.3.1",
+    "fmt 11.2.0",
+    "spdlog v1.15.3",
     "zydis v3.2.1",
     "nlohmann_json v3.11.3"
 )

@@ -59,7 +59,7 @@ struct MsvcExceptionRef {
     ThrowInfo const*           throwInfo = nullptr;
     _CatchableTypeArray const* cArray    = nullptr;
 
-    MsvcExceptionRef(::_EXCEPTION_RECORD const& er);
+    explicit MsvcExceptionRef(::_EXCEPTION_RECORD const& er);
 
     [[nodiscard]] uint getNumCatchableTypes() const { return cArray ? cArray->nCatchableTypes : 0u; }
 
@@ -239,7 +239,12 @@ void DumpSystemInfo() {
         totalPhyMem / 1024 / 1024 / 1024,
         (totalPhyMem - availPhyMem) / totalPhyMem * 100
     );
-    pCombinedLogger->info("  |LocalTime: {}", fmt::format("{0:%F %T} (UTC{0:%z})", fmt::localtime(_time64(nullptr))));
+    pCombinedLogger->info("  |LocalTime: {}", [&]() {
+        std::time_t now = std::time(nullptr);
+        std::tm     local_tm{};
+        localtime_s(&local_tm, &now);
+        return fmt::format("{:%F %T}", local_tm);
+    }());
 }
 
 std::string MyUnDecorateSymbolName(const wchar_t* name) {
@@ -257,8 +262,8 @@ std::string MyUnDecorateSymbolName(const wchar_t* name) {
 }
 
 [[maybe_unused]] static std::string memStr(size_t mem) {
-    double r  = (double)mem;
-    r        /= 1024;
+    auto r  = static_cast<double>(mem);
+    r      /= 1024;
     if (r < 1024) {
         return ::fmt::format("{:>8.1f} KiB", r);
     }
@@ -541,7 +546,12 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
     hThread     = _hThread;
     dwProcessId = _dProcessId;
     dwThreadId  = _dThreadId;
-    date        = fmt::format("{:%Y-%m-%d_%H-%M-%S}", fmt::localtime(system_clock::now()));
+    // Use localtime_s on a std::tm and format that instead of fmt::localtime.
+
+    std::time_t now = std::time(nullptr);
+    std::tm     tml{};
+    localtime_s(&tml, &now);
+    date = fmt::format("{:%Y-%m-%d_%H-%M-%S}", tml);
 
     printf("\n");
     pLogger->set_level(spdlog::level::info);
