@@ -452,7 +452,8 @@ void DumpModules() {
         auto hModule       = reinterpret_cast<HMODULE>(moduleBase);
         auto moduleName    = w2u8(moduleInfo.first);
         auto moduleVersion = w2u8(SymbolHelper::GetModuleVersionStr(hProcess, hModule));
-        if (moduleName == "bedrock_server_mod.exe" || moduleName == "bedrock_server.exe") {
+        if (moduleName == "bedrock_server_mod.exe" || moduleName == "bedrock_server.exe" ||
+            moduleName == "Minecraft.Windows.exe") {
             moduleVersion = crashlogger::BdsVersion;
         }
         if (moduleVersion.empty()) {
@@ -555,7 +556,7 @@ void LogCrash(PEXCEPTION_POINTERS e, HANDLE _hProcess, HANDLE _hThread, DWORD _d
 
     printf("\n");
     pLogger->set_level(spdlog::level::info);
-    pLogger->info("BDS Crashed! Generating Stacktrace and MiniDump...");
+    pLogger->info("Game Crashed! Generating Stacktrace and MiniDump...");
 
     auto targetPathBuf = std::wstring(MAX_PATH, L'\0');
     if (auto targetPathLen = GetModuleFileNameExW(hProcess, nullptr, targetPathBuf.data(), MAX_PATH)) {
