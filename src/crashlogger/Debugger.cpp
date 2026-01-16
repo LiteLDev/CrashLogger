@@ -11,10 +11,17 @@ namespace crashlogger::Debugger {
 HANDLE hTargetProcess;
 
 bool InitDebugger() {
-    if (!DebugActiveProcess(GetProcessId(hTargetProcess))) {
+    // Fix window pop up on client
+    FreeConsole();
+
+    auto pid = GetProcessId(hTargetProcess);
+    if (!DebugActiveProcess(pid)) {
         pLogger->error("Failed to attach debugger! Error Code: {}", GetLastError());
         return false;
     }
+
+    AttachConsole(pid);
+
     DebugSetProcessKillOnExit(false);
     return true;
 }

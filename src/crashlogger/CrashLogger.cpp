@@ -116,8 +116,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int         pid;
-    bool        legacy = LegacyParseArgs(argc, argv, crashlogger::BdsVersion, pid);
+    int  pid;
+    bool legacy = LegacyParseArgs(argc, argv, crashlogger::BdsVersion, pid);
     if (!legacy) {
         ModernParseArgs(argc, argv, crashlogger::BdsVersion, pid);
     }
