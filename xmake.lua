@@ -8,6 +8,7 @@ add_requires(
     "nlohmann_json v3.11.3"
 )
 
+add_requires("zlib 1.3.1") -- workaround to fix configuration
 add_requires("cpr 1.10.5", {configs = {ssl = true}})
 if not has_config("vs_runtime") then
     set_runtimes("MD")
