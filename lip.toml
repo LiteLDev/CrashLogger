@@ -1,0 +1,30 @@
+format = 4
+id = "github.com/LiteLDev/CrashLogger"
+version = "1.4.0"
+
+[info]
+name = "CrashLogger"
+description = "Show crash log of LeviLamina"
+tags = ["utility"]
+
+# CrashLogger is used by LeviLamina on both sides: the server build and the client build
+# (variant "client" of LeviLamina) both depend on the bare id, so the default variant has
+# an entry for each side. Both take the same executable.
+
+[[variants.""]]
+side = "server"
+platform = "win-x64"
+
+[[variants."".assets]]
+type = "zip"
+urls = ["https://{{id}}/releases/download/v{{version}}/CrashLogger-windows-x64.zip"]
+place = [{ src = "CrashLogger.exe", dest = "mods/LeviLamina/CrashLogger.exe" }]
+
+[[variants.""]]
+side = "client"
+platform = "win-x64"
+
+[[variants."".assets]]
+type = "zip"
+urls = ["https://{{id}}/releases/download/v{{version}}/CrashLogger-windows-x64.zip"]
+place = [{ src = "CrashLogger.exe", dest = "mods/LeviLamina/CrashLogger.exe" }]
